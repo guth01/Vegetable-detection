@@ -1,2 +1,2 @@
 # Vegetable-detection
-Used open cv and yolov8 to detect vegetable images
+Appication that uses open cv and yolov8 to detect vegetable images
