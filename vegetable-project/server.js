@@ -142,10 +142,3 @@ app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
   console.log('Upload your vegetable images to get predictions!');
 });
-
-// TODO: Setup steps for YOLO integration
-// 1. Install Python dependencies: pip install ultralytics
-// 2. Place your best.pt file in the project root directory
-// 3. Create predict.py script (see separate artifact)
-// 4. Make sure Python is in your system PATH
-// 5. Test the Python script independently first
