@@ -1,0 +1,5 @@
+# Python requirements for vegetable detection YOLO app
+ultralytics
+# ultralytics will install torch and numpy as dependencies
+# If you need OpenCV for image processing, uncomment the next line:
+# opencv-python
