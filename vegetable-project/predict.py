@@ -4,13 +4,28 @@ import json
 import os
 from ultralytics import YOLO
 
+# Global model cache to avoid reloading
+_model_cache = None
+
+def get_model():
+    global _model_cache
+    if _model_cache is None:
+        _model_cache = YOLO('best (5).pt')
+    return _model_cache
+
 def predict_vegetable(image_path):
     try:
-        # Load your trained YOLO model
-        model = YOLO('best (5).pt')
+        import time
+        start_time = time.time()
+        
+        # Use cached model
+        model = get_model()
+        print(f"Model load time: {time.time() - start_time:.2f}s", file=sys.stderr)
         
         # Run prediction on the uploaded image
+        pred_start = time.time()
         results = model.predict(source=image_path, save=False, verbose=False)
+        print(f"Prediction time: {time.time() - pred_start:.2f}s", file=sys.stderr)
         
         # Process results
         predictions = []

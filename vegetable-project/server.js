@@ -50,8 +50,15 @@ async function predictVegetable(imagePath) {
   return new Promise((resolve, reject) => {
     console.log('Running YOLO prediction on:', imagePath);
     
-    // Run Python script with the image path
-    const pythonProcess = spawn('python', ['predict.py', imagePath]);
+    // Run Python script with the image path (use python3 on Render)
+    const pythonProcess = spawn('python3', ['predict.py', imagePath], {
+      env: { 
+        ...process.env,
+        OMP_NUM_THREADS: '1',
+        MKL_NUM_THREADS: '1',
+        KMP_DUPLICATE_LIB_OK: 'TRUE'
+      }
+    });
     
     let stdout = '';
     let stderr = '';
