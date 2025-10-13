@@ -1,3 +1,6 @@
+## 🌐 Live Demo
+[View the deployed app here](https://vegetable-detection-ogg6.onrender.com/)
+
 # 🎯 YOLOv8 Object Detection Web App
 
 A lightweight **single-page application** built using **Node.js**, **Express**, and plain **HTML/CSS/JS**, featuring real-time object detection powered by a **custom-trained YOLOv8 model**.
