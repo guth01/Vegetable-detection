@@ -45,13 +45,40 @@ const upload = multer({
 
 const { spawn } = require('child_process');
 
+// Detect the correct Python command
+let PYTHON_CMD = null;
+
+function detectPythonCommand() {
+  const commands = ['python', 'python3', 'py'];
+  
+  for (const cmd of commands) {
+    try {
+      const result = require('child_process').spawnSync(cmd, ['--version'], { encoding: 'utf8' });
+      if (result.status === 0) {
+        console.log(`Detected Python command: ${cmd} (${result.stdout.trim()})`);
+        return cmd;
+      }
+    } catch (err) {
+      // Command not found, continue
+    }
+  }
+  
+  console.warn('Warning: Could not detect Python command, defaulting to "python"');
+  return 'python';
+}
+
 // YOLO prediction function
 async function predictVegetable(imagePath) {
   return new Promise((resolve, reject) => {
     console.log('Running YOLO prediction on:', imagePath);
     
-    // Run Python script with the image path (use python3 on Render)
-    const pythonProcess = spawn('python3', ['predict.py', imagePath], {
+    // Use detected Python command
+    if (!PYTHON_CMD) {
+      PYTHON_CMD = detectPythonCommand();
+    }
+    
+    // Run Python script with the image path
+    const pythonProcess = spawn(PYTHON_CMD, ['predict.py', imagePath], {
       env: { 
         ...process.env,
         OMP_NUM_THREADS: '1',
@@ -145,7 +172,62 @@ app.use((error, req, res, next) => {
   res.status(500).json({ error: error.message });
 });
 
+// Preload model on server startup
+function warmupModel() {
+  console.log('Warming up YOLO model...');
+  const { spawn } = require('child_process');
+  
+  // Try different Python commands for cross-platform compatibility
+  const pythonCommands = ['python', 'python3', 'py'];
+  let success = false;
+  
+  for (const pythonCmd of pythonCommands) {
+    try {
+      const warmupProcess = spawn(pythonCmd, ['-c', 'from ultralytics import YOLO; model = YOLO("best (5).pt"); print("Model loaded")'], {
+        cwd: __dirname,
+        env: { 
+          ...process.env,
+          OMP_NUM_THREADS: '1',
+          MKL_NUM_THREADS: '1',
+          KMP_DUPLICATE_LIB_OK: 'TRUE'
+        }
+      });
+      
+      warmupProcess.stdout.on('data', (data) => {
+        console.log(`Model warmup (${pythonCmd}):`, data.toString().trim());
+      });
+      
+      warmupProcess.stderr.on('data', (data) => {
+        console.error(`Warmup stderr (${pythonCmd}):`, data.toString().trim());
+      });
+      
+      warmupProcess.on('error', (err) => {
+        if (!success) {
+          console.log(`${pythonCmd} not found, trying next...`);
+        }
+      });
+      
+      warmupProcess.on('close', (code) => {
+        if (code === 0) {
+          console.log(`✓ Model preloaded and ready with ${pythonCmd}!`);
+          success = true;
+        } else if (code !== 9009 && code !== null) {
+          console.log(`Model warmup with ${pythonCmd} completed with code:`, code);
+        }
+      });
+      
+      // Break after first successful spawn attempt
+      break;
+    } catch (err) {
+      console.log(`Failed to spawn ${pythonCmd}, trying next...`);
+    }
+  }
+}
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
   console.log('Upload your vegetable images to get predictions!');
+  
+  // Warmup model after server starts
+  setTimeout(warmupModel, 1000);
 });
